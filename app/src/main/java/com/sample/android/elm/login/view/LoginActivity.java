@@ -69,6 +69,7 @@ public class LoginActivity extends AppCompatActivity implements ILoginView {
         saveCredentialsCb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                hideKeyboard();
                 presenter.onSaveCredentialsCheck(isChecked);
             }
         });

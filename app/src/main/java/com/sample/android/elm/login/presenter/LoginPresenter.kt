@@ -129,10 +129,6 @@ class LoginPresenter(private val loginView: ILoginView,
                 loginView.hideProgress()
             }
 
-            if (signalCloseKeyboard != null && signalCloseKeyboard){
-                loginView.hideKeyboard()
-            }
-
             if (btnEnabled) {
                 loginView.enableLoginBtn()
             } else {
