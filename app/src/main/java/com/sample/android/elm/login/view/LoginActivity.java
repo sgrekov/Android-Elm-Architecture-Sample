@@ -22,7 +22,6 @@ import com.sample.android.elm.data.AppPrefs;
 import com.sample.android.elm.login.presenter.LoginPresenter;
 import com.sample.android.elm.main.view.MainActivity;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import org.jetbrains.annotations.NotNull;
 
 public class LoginActivity extends AppCompatActivity implements ILoginView {
     LoginPresenter presenter;
@@ -153,15 +152,8 @@ public class LoginActivity extends AppCompatActivity implements ILoginView {
     public void goToMainScreen() {
         Intent i = new Intent(this, MainActivity.class);
         startActivity(i);
+        finish();
     }
 
-    @Override
-    public void setLogin(@NotNull String login) {
-        loginText.setText(login);
-    }
 
-    @Override
-    public void setPass(@NotNull String pass) {
-        passwordText.setText(pass);
-    }
 }

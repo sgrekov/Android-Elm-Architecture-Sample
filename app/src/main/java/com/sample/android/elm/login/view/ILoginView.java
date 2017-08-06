@@ -1,7 +1,5 @@
 package com.sample.android.elm.login.view;
 
-import org.jetbrains.annotations.NotNull;
-
 public interface ILoginView {
     void error(String errorText);
 
@@ -29,7 +27,4 @@ public interface ILoginView {
 
     void goToMainScreen();
 
-    void setLogin(@NotNull String login);
-
-    void setPass(@NotNull String pass);
 }

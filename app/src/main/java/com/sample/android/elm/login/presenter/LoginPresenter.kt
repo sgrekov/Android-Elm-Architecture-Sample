@@ -25,8 +25,7 @@ class LoginPresenter(private val loginView: ILoginView,
                           val isLoading: Boolean = true,
                           val error: String? = null,
                           val btnEnabled: Boolean = false,
-                          val isLogged: Boolean = false,
-                          val signalCloseKeyboard : Boolean? = null) : State()
+                          val isLogged: Boolean = false) : State()
 
     class GetSavedUserCmd : Cmd()
     data class SaveUserCredentialsCmd(val login: String, val pass: String) : Cmd()
@@ -65,9 +64,9 @@ class LoginPresenter(private val loginView: ILoginView,
             }
             is LoginResponseMsg -> {
                 if (state.saveUser) {
-                    Pair(state.copy(signalCloseKeyboard = null), SaveUserCredentialsCmd(state.login, state.pass))
+                    Pair(state, SaveUserCredentialsCmd(state.login, state.pass))
                 } else {
-                    Pair(state.copy(isLogged = true, signalCloseKeyboard = null), None())
+                    Pair(state.copy(isLogged = true), None())
                 }
             }
             is UserCredentialsSavedMsg -> {
@@ -89,20 +88,20 @@ class LoginPresenter(private val loginView: ILoginView,
                     Pair(state.copy(pass = msg.pass, btnEnabled = validateLogin(state.login)), None())
             }
             is LoginClickMsg -> {
-                if (checkLogin(state.login)){
+                if (checkLogin(state.login)) {
                     return Pair(state.copy(loginError = "Login is not valid"), None())
                 }
-                if (checkPass(state.pass)){
+                if (checkPass(state.pass)) {
                     return Pair(state.copy(passError = "Password is not valid"), None())
                 }
-                Pair(state.copy(isLoading = true, error = null, signalCloseKeyboard = true), LoginCmd(state.login, state.pass))
+                Pair(state.copy(isLoading = true, error = null), LoginCmd(state.login, state.pass))
             }
             is ErrorMsg -> {
                 return when (msg.cmd) {
                     is GetSavedUserCmd -> Pair(state.copy(isLoading = false), None())
                     is LoginCmd -> {
                         if (msg.err is RequestException) {
-                            return Pair(state.copy(isLoading = false, signalCloseKeyboard = null, error = msg.err.error.message), None())
+                            return Pair(state.copy(isLoading = false, error = msg.err.error.message), None())
                         }
                         return Pair(state.copy(isLoading = false, error = "Error while login"), None())
                     }

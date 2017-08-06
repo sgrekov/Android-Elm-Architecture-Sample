@@ -5,6 +5,7 @@ import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.disposables.Disposable
+import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 import java.util.*
 
@@ -16,7 +17,7 @@ sealed class AbstractMsg
 open class Msg : AbstractMsg()
 class Idle : Msg()
 class Init : Msg()
-class ErrorMsg(val err : Throwable, val cmd : Cmd) : Msg()
+class ErrorMsg(val err: Throwable, val cmd: Cmd) : Msg()
 
 
 sealed class AbstractCmd
@@ -46,37 +47,40 @@ class ElmProgram(val outputScheduler: Scheduler) {
         this.state = initialState
         return msgRelay
                 .map { (msg, state) ->
-                    Timber.d("elm reduce state:$state msg:$msg ")
+                    Timber.d("elm update msg:$msg ")
                     component.update(msg, state)
                 }
                 .observeOn(outputScheduler)
                 .doOnNext { (state, cmd) ->
                     component.render(state)
                 }
+                .doOnNext{ (state, _) ->
+                    this.state = state
+                    if (msgQueue.size > 0) {
+                        msgQueue.removeFirst()
+                    }
+                }
+                .observeOn(Schedulers.io())
                 .flatMap { (state, cmd) ->
+                    Timber.d("call cmd:$cmd state:$state ")
                     when (cmd) {
-                        is None -> Observable.just((Pair(Idle(), state)))
-                        else -> component.call(cmd).map { msg -> Pair(msg, state) }
-                                .onErrorResumeNext{err -> Single.just(Pair(ErrorMsg(err, cmd), state)) }
+                        is None -> Observable.just((Idle()))
+                        else -> component.call(cmd)
+                                .onErrorResumeNext { err -> Single.just(ErrorMsg(err, cmd)) }
                                 .toObservable()
                     }
                 }
                 .observeOn(outputScheduler)
-                .subscribe({ (msg, state) ->
-                    this.state = state
-                    Timber.d("elm event:${msg.javaClass.simpleName}")
-                    Timber.d("elm msg queue:${msgQueue}")
+                .subscribe({ msg ->
+                    Timber.d("elm subscribe msg:${msg.javaClass.simpleName}")
                     when (msg) {
                         is Idle -> {
-                            Timber.d("elm no new msg")
+                            Timber.d("elm idle")
                         }
-                        else -> accept(msg)
-                    }
-                    if (msgQueue.size > 0) {
-                        msgQueue.removeFirst()
+                        else -> msgQueue.addLast(msg)
                     }
 
-                    loop(state)
+                    loop()
                 })
     }
 
@@ -84,11 +88,9 @@ class ElmProgram(val outputScheduler: Scheduler) {
         return state
     }
 
-    private fun loop(state: State) {
-        Timber.d("elm loop")
+    private fun loop() {
         if (msgQueue.size > 0) {
-            Timber.d("elm loop event:$msgQueue.first state:$state")
-            msgRelay.accept(Pair(msgQueue.first, state))
+            msgRelay.accept(Pair(msgQueue.first, this.state))
         }
     }
 
@@ -96,7 +98,6 @@ class ElmProgram(val outputScheduler: Scheduler) {
         Timber.d("elm accept event:${msg.javaClass.simpleName}")
         msgQueue.addLast(msg)
         if (msgQueue.size == 1) {
-            Timber.d("elm relay accept:${msgQueue.first}")
             msgRelay.accept(Pair(msgQueue.first, state))
         }
     }
