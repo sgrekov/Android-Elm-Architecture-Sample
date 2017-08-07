@@ -16,7 +16,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import com.androidjacoco.sample.R;
 import com.jakewharton.rxbinding2.widget.RxTextView;
-import com.sample.android.elm.ElmProgram;
+import com.sample.android.elm.Program;
 import com.sample.android.elm.SampleApp;
 import com.sample.android.elm.data.AppPrefs;
 import com.sample.android.elm.login.presenter.LoginPresenter;
@@ -50,7 +50,7 @@ public class LoginActivity extends AppCompatActivity implements ILoginView {
         saveCredentialsCb = (CheckBox) findViewById(R.id.save_credentials_cb);
 
         presenter = new LoginPresenter(this,
-                new ElmProgram(AndroidSchedulers.mainThread()),
+                new Program(AndroidSchedulers.mainThread()),
                 new AppPrefs(getPreferences(MODE_PRIVATE)),
                 ((SampleApp) getApplication()).getService(),
                 AndroidSchedulers.mainThread());

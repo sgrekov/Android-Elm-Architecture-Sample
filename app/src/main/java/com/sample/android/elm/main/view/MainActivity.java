@@ -10,7 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import com.androidjacoco.sample.R;
-import com.sample.android.elm.ElmProgram;
+import com.sample.android.elm.Program;
 import com.sample.android.elm.SampleApp;
 import com.sample.android.elm.data.AppPrefs;
 import com.sample.android.elm.main.presenter.MainPresenter;
@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements IMainView {
         errorText = (TextView) findViewById(R.id.error_text);
 
         presenter = new MainPresenter(this,
-                new ElmProgram(AndroidSchedulers.mainThread()),
+                new Program(AndroidSchedulers.mainThread()),
                 new AppPrefs(getPreferences(MODE_PRIVATE)),
                 ((SampleApp) getApplication()).getService());
         presenter.init();

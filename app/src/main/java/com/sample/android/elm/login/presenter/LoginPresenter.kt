@@ -12,7 +12,7 @@ import org.eclipse.egit.github.core.client.RequestException
 import timber.log.Timber
 
 class LoginPresenter(private val loginView: ILoginView,
-                     private val program: ElmProgram,
+                     private val program: Program,
                      private val appPrefs: IAppPrefs,
                      private val apiService: IApiService,
                      private val scheduler: Scheduler) : Component {
@@ -49,9 +49,6 @@ class LoginPresenter(private val loginView: ILoginView,
         program.accept(Init())
     }
 
-    fun destroy() {
-        disposable.dispose()
-    }
 
     override fun update(msg: Msg, state: State): Pair<State, Cmd> {
         val state = state as LoginState
@@ -195,5 +192,9 @@ class LoginPresenter(private val loginView: ILoginView,
         passValueObservable.subscribe({ pass ->
             program.accept(PassInputMsg(pass.toString()))
         })
+    }
+
+    fun destroy() {
+        disposable.dispose()
     }
 }

@@ -35,7 +35,7 @@ interface Component {
 }
 
 
-class ElmProgram(val outputScheduler: Scheduler) {
+class Program(val outputScheduler: Scheduler) {
 
     private val msgRelay: BehaviorRelay<Pair<Msg, State>> = BehaviorRelay.create()
     private var msgQueue = ArrayDeque<Msg>()
@@ -59,6 +59,7 @@ class ElmProgram(val outputScheduler: Scheduler) {
                     if (msgQueue.size > 0) {
                         msgQueue.removeFirst()
                     }
+                    loop()
                 }
                 .observeOn(Schedulers.io())
                 .flatMap { (state, cmd) ->

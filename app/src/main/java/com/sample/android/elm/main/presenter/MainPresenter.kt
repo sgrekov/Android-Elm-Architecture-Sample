@@ -9,7 +9,7 @@ import io.reactivex.disposables.Disposable
 import org.eclipse.egit.github.core.Repository
 
 class MainPresenter(val view: IMainView,
-                    val program: ElmProgram,
+                    val program: Program,
                     val appPrefs: AppPrefs,
                     val service: GitHubService) : Component {
 
