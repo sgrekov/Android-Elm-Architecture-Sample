@@ -76,7 +76,6 @@ class Program(val outputScheduler: Scheduler) {
                     Timber.d("elm subscribe msg:${msg.javaClass.simpleName}")
                     when (msg) {
                         is Idle -> {
-                            Timber.d("elm idle")
                         }
                         else -> msgQueue.addLast(msg)
                     }

@@ -34,7 +34,7 @@ class LoginPresenterTest {
     }
 
     @Test
-    fun initWithSavedLogin() {
+    fun initWithSavedLogin_HaveSavedCredentials_LoginOk() {
         //login screen init and look for saved credentials in preferences
         var initState = LoginPresenter.LoginState()
         //update
