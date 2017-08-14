@@ -1,7 +1,6 @@
 package com.sample.android.elm
 
 import com.jakewharton.rxrelay2.BehaviorRelay
-import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.disposables.Disposable
@@ -54,29 +53,27 @@ class Program(val outputScheduler: Scheduler) {
                 .doOnNext { (state, cmd) ->
                     component.render(state)
                 }
-                .doOnNext{ (state, _) ->
+                .doOnNext { (state, _) ->
                     this.state = state
                     if (msgQueue.size > 0) {
                         msgQueue.removeFirst()
                     }
                     loop()
                 }
+                .filter { (_, cmd) -> cmd !is None }
                 .observeOn(Schedulers.io())
                 .flatMap { (state, cmd) ->
                     Timber.d("call cmd:$cmd state:$state ")
-                    when (cmd) {
-                        is None -> Observable.just((Idle()))
-                        else -> component.call(cmd)
-                                .onErrorResumeNext { err -> Single.just(ErrorMsg(err, cmd)) }
-                                .toObservable()
-                    }
+                    return@flatMap component.call(cmd)
+                            .onErrorResumeNext { err -> Single.just(ErrorMsg(err, cmd)) }
+                            .toObservable()
+
                 }
                 .observeOn(outputScheduler)
                 .subscribe({ msg ->
                     Timber.d("elm subscribe msg:${msg.javaClass.simpleName}")
                     when (msg) {
-                        is Idle -> {
-                        }
+                        is Idle -> {}
                         else -> msgQueue.addLast(msg)
                     }
 
