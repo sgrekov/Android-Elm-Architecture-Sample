@@ -39,14 +39,14 @@ class LoginPresenter(private val loginView: ILoginView,
     data class LoginResponseMsg(val logged: Boolean) : Msg()
     class LoginClickMsg : Msg()
 
-    var disposable: Disposable
+    var programDisposable: Disposable
 
     init {
-        disposable = program.init(LoginState(), this)
+        programDisposable = program.init(LoginState(), this)
     }
 
     fun init() {
-        program.accept(Init())
+        program.accept(Init)
     }
 
 
@@ -54,7 +54,7 @@ class LoginPresenter(private val loginView: ILoginView,
         val state = state as LoginState
         return when (msg) {
             is Init -> {
-                Pair(state, GetSavedUserCmd())
+                Pair(state.copy(isLoading = true), GetSavedUserCmd())
             }
             is UserCredentialsLoadedMsg -> {
                 Pair(state.copy(login = msg.login, pass = msg.pass), LoginCmd(msg.login, msg.pass))
@@ -63,52 +63,52 @@ class LoginPresenter(private val loginView: ILoginView,
                 if (state.saveUser) {
                     Pair(state, SaveUserCredentialsCmd(state.login, state.pass))
                 } else {
-                    Pair(state.copy(isLogged = true), None())
+                    Pair(state.copy(isLogged = true), None)
                 }
             }
             is UserCredentialsSavedMsg -> {
-                Pair(state.copy(isLogged = true), None())
+                Pair(state.copy(isLogged = true), None)
             }
             is IsSaveCredentialsMsg -> {
-                Pair(state.copy(saveUser = msg.checked), None())
+                Pair(state.copy(saveUser = msg.checked), None)
             }
             is LoginInputMsg -> {
                 return if (!validateLogin(msg.login))
-                    Pair(state.copy(login = msg.login, btnEnabled = false), None())
+                    Pair(state.copy(login = msg.login, btnEnabled = false), None)
                 else
-                    Pair(state.copy(login = msg.login, loginError = null, btnEnabled = validatePass(state.pass)), None())
+                    Pair(state.copy(login = msg.login, loginError = null, btnEnabled = validatePass(state.pass)), None)
             }
             is PassInputMsg -> {
                 return if (!validatePass(msg.pass))
-                    Pair(state.copy(pass = msg.pass, btnEnabled = false), None())
+                    Pair(state.copy(pass = msg.pass, btnEnabled = false), None)
                 else
-                    Pair(state.copy(pass = msg.pass, btnEnabled = validateLogin(state.login)), None())
+                    Pair(state.copy(pass = msg.pass, btnEnabled = validateLogin(state.login)), None)
             }
             is LoginClickMsg -> {
                 if (checkLogin(state.login)) {
-                    return Pair(state.copy(loginError = "Login is not valid"), None())
+                    return Pair(state.copy(loginError = "Login is not valid"), None)
                 }
                 if (checkPass(state.pass)) {
-                    return Pair(state.copy(passError = "Password is not valid"), None())
+                    return Pair(state.copy(passError = "Password is not valid"), None)
                 }
                 Pair(state.copy(isLoading = true, error = null), LoginCmd(state.login, state.pass))
             }
             is ErrorMsg -> {
                 return when (msg.cmd) {
-                    is GetSavedUserCmd -> Pair(state.copy(isLoading = false), None())
+                    is GetSavedUserCmd -> Pair(state.copy(isLoading = false), None)
                     is LoginCmd -> {
                         if (msg.err is RequestException) {
-                            return Pair(state.copy(isLoading = false, error = msg.err.error.message), None())
+                            return Pair(state.copy(isLoading = false, error = msg.err.error.message), None)
                         }
-                        return Pair(state.copy(isLoading = false, error = "Error while login"), None())
+                        return Pair(state.copy(isLoading = false, error = "Error while login"), None)
                     }
                     else -> {
                         Timber.e(msg.err)
-                        Pair(state, None())
+                        Pair(state, None)
                     }
                 }
             }
-            else -> Pair(state, None())
+            else -> Pair(state, None)
         }
     }
 
@@ -146,6 +146,10 @@ class LoginPresenter(private val loginView: ILoginView,
         }
     }
 
+    fun render(){
+        program.render()
+    }
+
     override fun call(cmd: Cmd): Single<Msg> {
         return when (cmd) {
             is GetSavedUserCmd -> appPrefs.getUserSavedCredentials()
@@ -154,7 +158,7 @@ class LoginPresenter(private val loginView: ILoginView,
                     .map { saved -> UserCredentialsSavedMsg() }
             is LoginCmd -> apiService.login(cmd.login, cmd.pass)
                     .map { logged -> LoginResponseMsg(logged) }
-            else -> Single.just(Idle())
+            else -> Single.just(Idle)
         }
     }
 
@@ -182,19 +186,19 @@ class LoginPresenter(private val loginView: ILoginView,
         return (login.startsWith("42") || login == "admin")
     }
 
-    fun addLoginInput(logintextViewText: Observable<CharSequence>) {
-        logintextViewText.subscribe({ login ->
+    fun addLoginInput(logintextViewText: Observable<CharSequence>) : Disposable {
+        return logintextViewText.skip(1).subscribe({ login ->
             program.accept(LoginInputMsg(login.toString()))
         })
     }
 
-    fun addPasswordInput(passValueObservable: Observable<CharSequence>) {
-        passValueObservable.subscribe({ pass ->
+    fun addPasswordInput(passValueObservable: Observable<CharSequence>) : Disposable {
+        return passValueObservable.skip(1).subscribe({ pass ->
             program.accept(PassInputMsg(pass.toString()))
         })
     }
 
     fun destroy() {
-        disposable.dispose()
+        programDisposable.dispose()
     }
 }

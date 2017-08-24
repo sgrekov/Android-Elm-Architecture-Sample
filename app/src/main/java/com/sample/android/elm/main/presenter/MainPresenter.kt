@@ -21,26 +21,21 @@ class MainPresenter(val view: IMainView,
 
     data class ReposLoadedMsg(val reposList: List<Repository>) : Msg()
 
-    var disposable: Disposable
+    lateinit var disposable: Disposable
 
-    init {
-        disposable = program.init(MainState(userName = service.userName), this)
-    }
+    fun init(initialState: MainState?) {
+        disposable =
+                program.init(initialState ?: MainState(userName = service.userName), this)
 
-    fun init() {
-        program.accept(Init())
-    }
-
-    fun destroy() {
-        disposable.dispose()
+        initialState ?: program.accept(Init) //if no saved state, then run init Msg
     }
 
     override fun update(msg: Msg, state: State): Pair<State, Cmd> {
         val state = state as MainState
         return when (msg) {
             is Init -> Pair(state, LoadReposCmd(state.userName))
-            is ReposLoadedMsg -> Pair(state.copy(isLoading = false, reposList = msg.reposList), None())
-            else -> Pair(state, None())
+            is ReposLoadedMsg -> Pair(state.copy(isLoading = false, reposList = msg.reposList), None)
+            else -> Pair(state, None)
         }
     }
 
@@ -66,8 +61,20 @@ class MainPresenter(val view: IMainView,
     override fun call(cmd: Cmd): Single<Msg> {
         return when (cmd) {
             is LoadReposCmd -> service.getStarredRepos(cmd.userName).map { repos -> ReposLoadedMsg(repos) }
-            else -> Single.just(Idle())
+            else -> Single.just(Idle)
         }
+    }
+
+    fun destroy() {
+        disposable.dispose()
+    }
+
+    fun getState() : MainState{
+        return program.getState() as MainState
+    }
+
+    fun render(){
+        program.render()
     }
 
 }

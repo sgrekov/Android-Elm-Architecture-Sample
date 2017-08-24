@@ -14,14 +14,14 @@ open class State : AbstractState()
 
 sealed class AbstractMsg
 open class Msg : AbstractMsg()
-class Idle : Msg()
-class Init : Msg()
+object Idle : Msg()
+object Init : Msg()
 class ErrorMsg(val err: Throwable, val cmd: Cmd) : Msg()
 
 
 sealed class AbstractCmd
 open class Cmd : AbstractCmd()
-class None : Cmd()
+object None : Cmd()
 
 interface Component {
 
@@ -83,6 +83,10 @@ class Program(val outputScheduler: Scheduler) {
 
     fun getState(): State {
         return state
+    }
+
+    fun render() {
+        component.render(state)
     }
 
     private fun loop() {

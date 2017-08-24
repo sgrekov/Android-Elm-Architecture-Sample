@@ -38,7 +38,7 @@ class LoginPresenterTest {
         //login screen init and look for saved credentials in preferences
         var initState = LoginPresenter.LoginState()
         //update
-        val (searchForLoginState, searchForLoginCmd) = presenter.update(Init(), initState)
+        val (searchForLoginState, searchForLoginCmd) = presenter.update(Init, initState)
 
         assertEquals(initState.copy(isLoading = true), searchForLoginState)
         assertThat(searchForLoginCmd, instanceOf(LoginPresenter.GetSavedUserCmd::class.java))

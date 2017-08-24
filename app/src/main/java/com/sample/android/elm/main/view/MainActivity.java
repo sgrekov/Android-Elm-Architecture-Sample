@@ -1,6 +1,7 @@
 package com.sample.android.elm.main.view;
 
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -12,6 +13,7 @@ import android.widget.TextView;
 import com.androidjacoco.sample.R;
 import com.sample.android.elm.Program;
 import com.sample.android.elm.SampleApp;
+import com.sample.android.elm.StateHolderFragment;
 import com.sample.android.elm.data.AppPrefs;
 import com.sample.android.elm.main.presenter.MainPresenter;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -22,10 +24,12 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements IMainView {
 
+    public static final String STATE_HOLDER_TAG = "STATE_HOLDER_TAG";
     MainPresenter presenter;
     RecyclerView reposList;
     ProgressBar progressBar;
     TextView errorText;
+    StateHolderFragment stateHolderFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,16 +41,33 @@ public class MainActivity extends AppCompatActivity implements IMainView {
         progressBar = (ProgressBar) findViewById(R.id.repos_progress);
         errorText = (TextView) findViewById(R.id.error_text);
 
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag(STATE_HOLDER_TAG);
+        if (fragment == null) {
+            stateHolderFragment = new StateHolderFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(stateHolderFragment, STATE_HOLDER_TAG)
+                    .commit();
+        } else {
+            stateHolderFragment = (StateHolderFragment) fragment;
+        }
+
         presenter = new MainPresenter(this,
                 new Program(AndroidSchedulers.mainThread()),
                 new AppPrefs(getPreferences(MODE_PRIVATE)),
                 ((SampleApp) getApplication()).getService());
-        presenter.init();
+        presenter.init(stateHolderFragment.getMainScreenState());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        presenter.render();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stateHolderFragment.putMainState(presenter.getState());
         presenter.destroy();
     }
 
