@@ -51,6 +51,8 @@ public class MainActivity extends AppCompatActivity implements IMainView {
             stateHolderFragment = (StateHolderFragment) fragment;
         }
 
+
+
         presenter = new MainPresenter(this,
                 new Program(AndroidSchedulers.mainThread()),
                 new AppPrefs(getPreferences(MODE_PRIVATE)),

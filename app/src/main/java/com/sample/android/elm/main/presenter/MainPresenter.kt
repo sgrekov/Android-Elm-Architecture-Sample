@@ -1,6 +1,13 @@
 package com.sample.android.elm.main.presenter
 
-import com.sample.android.elm.*
+import com.sample.android.elm.Cmd
+import com.sample.android.elm.Component
+import com.sample.android.elm.Idle
+import com.sample.android.elm.Init
+import com.sample.android.elm.Msg
+import com.sample.android.elm.None
+import com.sample.android.elm.Program
+import com.sample.android.elm.State
 import com.sample.android.elm.data.AppPrefs
 import com.sample.android.elm.data.GitHubService
 import com.sample.android.elm.main.view.IMainView
@@ -9,9 +16,9 @@ import io.reactivex.disposables.Disposable
 import org.eclipse.egit.github.core.Repository
 
 class MainPresenter(val view: IMainView,
-                    val program: Program,
+                    val program: Program<MainState>,
                     val appPrefs: AppPrefs,
-                    val service: GitHubService) : Component {
+                    val service: GitHubService) : Component<MainPresenter.MainState> {
 
     data class MainState(val isLoading: Boolean = true,
                          val userName: String,
@@ -30,8 +37,7 @@ class MainPresenter(val view: IMainView,
         initialState ?: program.accept(Init) //if no saved state, then run init Msg
     }
 
-    override fun update(msg: Msg, state: State): Pair<State, Cmd> {
-        val state = state as MainState
+    override fun update(msg: Msg, state: MainState): Pair<MainState, Cmd> {
         return when (msg) {
             is Init -> Pair(state, LoadReposCmd(state.userName))
             is ReposLoadedMsg -> Pair(state.copy(isLoading = false, reposList = msg.reposList), None)
@@ -39,8 +45,8 @@ class MainPresenter(val view: IMainView,
         }
     }
 
-    override fun render(state: State) {
-        (state as MainState).apply {
+    override fun render(state: MainState) {
+        state.apply {
             view.setTitle(state.userName + "'s starred repos")
 
             if (isLoading) {
@@ -69,11 +75,11 @@ class MainPresenter(val view: IMainView,
         disposable.dispose()
     }
 
-    fun getState() : MainState{
-        return program.getState() as MainState
+    fun getState(): MainState {
+        return program.getState()
     }
 
-    fun render(){
+    fun render() {
         program.render()
     }
 

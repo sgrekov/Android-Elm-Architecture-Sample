@@ -1,6 +1,14 @@
 package com.sample.android.elm.login.presenter
 
-import com.sample.android.elm.*
+import com.sample.android.elm.Cmd
+import com.sample.android.elm.Component
+import com.sample.android.elm.ErrorMsg
+import com.sample.android.elm.Idle
+import com.sample.android.elm.Init
+import com.sample.android.elm.Msg
+import com.sample.android.elm.None
+import com.sample.android.elm.Program
+import com.sample.android.elm.State
 import com.sample.android.elm.data.IApiService
 import com.sample.android.elm.data.IAppPrefs
 import com.sample.android.elm.login.view.ILoginView
@@ -12,10 +20,10 @@ import org.eclipse.egit.github.core.client.RequestException
 import timber.log.Timber
 
 class LoginPresenter(private val loginView: ILoginView,
-                     private val program: Program,
+                     private val program: Program<LoginState>,
                      private val appPrefs: IAppPrefs,
                      private val apiService: IApiService,
-                     private val scheduler: Scheduler) : Component {
+                     private val scheduler: Scheduler) : Component<LoginPresenter.LoginState> {
 
     data class LoginState(val login: String = "",
                           val loginError: String? = null,
@@ -50,8 +58,7 @@ class LoginPresenter(private val loginView: ILoginView,
     }
 
 
-    override fun update(msg: Msg, state: State): Pair<State, Cmd> {
-        val state = state as LoginState
+    override fun update(msg: Msg, state: LoginState): Pair<LoginState, Cmd> {
         return when (msg) {
             is Init -> {
                 Pair(state.copy(isLoading = true), GetSavedUserCmd())
@@ -112,8 +119,8 @@ class LoginPresenter(private val loginView: ILoginView,
         }
     }
 
-    override fun render(state: State) {
-        (state as LoginState).apply {
+    override fun render(state: LoginState) {
+        state.apply {
             if (isLogged) {
                 loginView.hideKeyboard()
                 loginView.goToMainScreen()
