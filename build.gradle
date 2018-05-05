@@ -3,6 +3,7 @@
 buildscript {
     ext {
         kotlin_version = '1.2.31'
+        mobius_version = '1.1.1'
     }
     repositories {
         jcenter()

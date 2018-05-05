@@ -1,6 +1,5 @@
 package com.sample.android.elm.main.view
 
-import android.content.Context
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
@@ -11,63 +10,118 @@ import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
 import com.androidjacoco.sample.R
-import com.sample.android.elm.AndroidNavigator
-import com.sample.android.elm.Navigator
-import com.sample.android.elm.Program
 import com.sample.android.elm.SampleApp
-import com.sample.android.elm.StateHolderFragment
-import com.sample.android.elm.data.AppPrefs
-import com.sample.android.elm.main.presenter.MainPresenter
+import com.sample.android.elm.data.GitHubService
+import com.sample.android.elm.main.mobius.IdleEvent
+import com.sample.android.elm.main.mobius.LoadReposEffect
+import com.sample.android.elm.main.mobius.MainEffect
+import com.sample.android.elm.main.mobius.MainEvent
+import com.sample.android.elm.main.mobius.MainInit
+import com.sample.android.elm.main.mobius.MainModel
+import com.sample.android.elm.main.mobius.ReposLoadedEvent
+import com.spotify.mobius.First
+import com.spotify.mobius.MobiusLoop
+import com.spotify.mobius.Next
+import com.spotify.mobius.Update
+import com.spotify.mobius.android.AndroidLogger
+import com.spotify.mobius.android.MobiusAndroid
+import com.spotify.mobius.rx2.RxConnectables
+import com.spotify.mobius.rx2.RxMobius
+import io.reactivex.Observable
+import io.reactivex.ObservableSource
+import io.reactivex.ObservableTransformer
 import io.reactivex.android.schedulers.AndroidSchedulers
 import org.eclipse.egit.github.core.Repository
 
-class MainActivity : AppCompatActivity(), IMainView {
-    lateinit var presenter: MainPresenter
+class MainActivity : AppCompatActivity(), IMainView,
+    Update<MainModel, MainEvent, MainEffect>,
+    ObservableTransformer<MainEffect, MainEvent> {
+
     lateinit var reposList: RecyclerView
     lateinit var progressBar: ProgressBar
     lateinit var errorText: TextView
-    lateinit var stateHolderFragment: StateHolderFragment
+
+    lateinit var api: GitHubService
+
+    var loopFactory: MobiusLoop.Factory<MainModel, MainEvent, MainEffect> =
+        RxMobius
+            .loop(this, this)
+            .init {
+                First.first(MainModel(userName = api.getUserName()), setOf(LoadReposEffect(api.getUserName())))
+            }
+            .logger(AndroidLogger.tag<MainModel, MainEvent, MainEffect>("my_app"))
+
+    lateinit var controller: MobiusLoop.Controller<MainModel, MainEvent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        api = (application as SampleApp).service
+        controller = MobiusAndroid.controller(loopFactory, MainModel(userName = api.getUserName()))
 
         reposList = findViewById(R.id.repos_list) as RecyclerView
         reposList.layoutManager = LinearLayoutManager(applicationContext)
         progressBar = findViewById(R.id.repos_progress) as ProgressBar
         errorText = findViewById(R.id.error_text) as TextView
 
-        val fragment = supportFragmentManager.findFragmentByTag(STATE_HOLDER_TAG)
-        if (fragment == null) {
-            stateHolderFragment = StateHolderFragment()
-            supportFragmentManager.beginTransaction()
-                .add(stateHolderFragment, STATE_HOLDER_TAG)
-                .commit()
-        } else {
-            stateHolderFragment = fragment as StateHolderFragment
-        }
-
-
-        val navigator : Navigator = AndroidNavigator(this)
-        presenter = MainPresenter(
-            this,
-            Program(AndroidSchedulers.mainThread()),
-            AppPrefs(getPreferences(Context.MODE_PRIVATE)),
-            (application as SampleApp).service,
-            navigator
-        )
-        presenter.init(stateHolderFragment.getMainScreenState())
+        controller.connect(RxConnectables.fromTransformer(this::connectViews))
     }
 
     override fun onResume() {
         super.onResume()
-        presenter.render()
+        controller.start()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        stateHolderFragment.putMainState(presenter.getState())
-        presenter.destroy()
+        controller.stop()
+    }
+
+    override fun update(model: MainModel, event: MainEvent): Next<MainModel, MainEffect> {
+        return when (event) {
+            is MainInit -> Next.next(model, setOf(LoadReposEffect(model.userName)))
+            is ReposLoadedEvent -> Next.next(model.copy(isLoading = false, reposList = event.reposList))
+            else -> Next.noChange()
+        }
+    }
+
+    override fun apply(upstream: Observable<MainEffect>): ObservableSource<MainEvent> {
+        return upstream.flatMap { effect ->
+            return@flatMap when (effect) {
+                is LoadReposEffect ->
+                    api.getStarredRepos(effect.userName).map { repos -> ReposLoadedEvent(repos) }.toObservable()
+            }
+        }
+    }
+
+    fun connectViews(models: Observable<MainModel>): Observable<MainEvent> {
+        val disposable = models
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { render(it) }
+
+        return Observable
+            .just(IdleEvent as MainEvent)
+            .doOnDispose(disposable::dispose)
+    }
+
+    fun render(state: MainModel) {
+        state.apply {
+            setTitle(state.userName + "'s starred repos")
+
+            if (isLoading) {
+                if (reposList.isEmpty()) {
+                    showProgress()
+                }
+            } else {
+                hideProgress()
+                if (reposList.isEmpty()) {
+                    setErrorText("User has no starred repos")
+                    showErrorText()
+                }
+            }
+            setRepos(reposList)
+        }
     }
 
     override fun setTitle(title: String) {
@@ -125,10 +179,5 @@ class MainActivity : AppCompatActivity(), IMainView {
                 repoStarsCount.text = "watchers:" + repository.watchers
             }
         }
-    }
-
-    companion object {
-
-        val STATE_HOLDER_TAG = "STATE_HOLDER_TAG"
     }
 }
