@@ -6,38 +6,43 @@ import com.sample.android.elm.ErrorMsg
 import com.sample.android.elm.Idle
 import com.sample.android.elm.Init
 import com.sample.android.elm.Msg
+import com.sample.android.elm.Navigator
 import com.sample.android.elm.None
 import com.sample.android.elm.Program
 import com.sample.android.elm.State
 import com.sample.android.elm.data.IApiService
 import com.sample.android.elm.data.IAppPrefs
+import com.sample.android.elm.inView
 import com.sample.android.elm.login.view.ILoginView
 import io.reactivex.Observable
-import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.disposables.Disposable
 import org.eclipse.egit.github.core.client.RequestException
 import timber.log.Timber
 
-class LoginPresenter(private val loginView: ILoginView,
-                     private val program: Program<LoginState>,
-                     private val appPrefs: IAppPrefs,
-                     private val apiService: IApiService,
-                     private val scheduler: Scheduler) : Component<LoginPresenter.LoginState> {
+class LoginPresenter(
+    private val loginView: ILoginView,
+    private val program: Program<LoginState>,
+    private val appPrefs: IAppPrefs,
+    private val apiService: IApiService,
+    private val navigator: Navigator
+) : Component<LoginPresenter.LoginState> {
 
-    data class LoginState(val login: String = "",
-                          val loginError: String? = null,
-                          val pass: String = "",
-                          val passError: String? = null,
-                          val saveUser: Boolean = false,
-                          val isLoading: Boolean = true,
-                          val error: String? = null,
-                          val btnEnabled: Boolean = false,
-                          val isLogged: Boolean = false) : State()
+    data class LoginState(
+        val login: String = "",
+        val loginError: String? = null,
+        val pass: String = "",
+        val passError: String? = null,
+        val saveUser: Boolean = false,
+        val isLoading: Boolean = true,
+        val error: String? = null,
+        val btnEnabled: Boolean = false
+    ) : State()
 
     class GetSavedUserCmd : Cmd()
     data class SaveUserCredentialsCmd(val login: String, val pass: String) : Cmd()
     data class LoginCmd(val login: String, val pass: String) : Cmd()
+    object GoToMainCmd : Cmd()
 
     data class UserCredentialsLoadedMsg(val login: String, val pass: String) : Msg()
     class UserCredentialsSavedMsg : Msg()
@@ -60,111 +65,85 @@ class LoginPresenter(private val loginView: ILoginView,
 
     override fun update(msg: Msg, state: LoginState): Pair<LoginState, Cmd> {
         return when (msg) {
-            is Init -> {
-                Pair(state.copy(isLoading = true), GetSavedUserCmd())
-            }
-            is UserCredentialsLoadedMsg -> {
-                Pair(state.copy(login = msg.login, pass = msg.pass), LoginCmd(msg.login, msg.pass))
-            }
+            is Init -> state.copy(isLoading = true) to GetSavedUserCmd()
+            is UserCredentialsLoadedMsg ->
+                state.copy(login = msg.login, pass = msg.pass) to LoginCmd(msg.login, msg.pass)
             is LoginResponseMsg -> {
                 if (state.saveUser) {
-                    Pair(state, SaveUserCredentialsCmd(state.login, state.pass))
+                    state to SaveUserCredentialsCmd(state.login, state.pass)
                 } else {
-                    Pair(state.copy(isLogged = true), None)
+                    state to GoToMainCmd
                 }
             }
-            is UserCredentialsSavedMsg -> {
-                Pair(state.copy(isLogged = true), None)
-            }
-            is IsSaveCredentialsMsg -> {
-                Pair(state.copy(saveUser = msg.checked), None)
-            }
+            is UserCredentialsSavedMsg -> state to GoToMainCmd
+            is IsSaveCredentialsMsg -> Pair(state.copy(saveUser = msg.checked), None)
             is LoginInputMsg -> {
-                return if (!validateLogin(msg.login))
-                    Pair(state.copy(login = msg.login, btnEnabled = false), None)
+                if (!validateLogin(msg.login))
+                    state.copy(login = msg.login, btnEnabled = false) to None
                 else
-                    Pair(state.copy(login = msg.login, loginError = null, btnEnabled = validatePass(state.pass)), None)
+                    state.copy(login = msg.login, loginError = null, btnEnabled = validatePass(state.pass)) to None
             }
             is PassInputMsg -> {
-                return if (!validatePass(msg.pass))
-                    Pair(state.copy(pass = msg.pass, btnEnabled = false), None)
+                if (!validatePass(msg.pass))
+                    state.copy(pass = msg.pass, btnEnabled = false) to None
                 else
-                    Pair(state.copy(pass = msg.pass, btnEnabled = validateLogin(state.login)), None)
+                    state.copy(pass = msg.pass, btnEnabled = validateLogin(state.login)) to None
             }
             is LoginClickMsg -> {
                 if (checkLogin(state.login)) {
-                    return Pair(state.copy(loginError = "Login is not valid"), None)
+                    state.copy(loginError = "Login is not valid") to None
                 }
                 if (checkPass(state.pass)) {
-                    return Pair(state.copy(passError = "Password is not valid"), None)
+                    state.copy(passError = "Password is not valid") to None
                 }
-                Pair(state.copy(isLoading = true, error = null), LoginCmd(state.login, state.pass))
+                state.copy(isLoading = true, error = null) to LoginCmd(state.login, state.pass)
             }
             is ErrorMsg -> {
                 return when (msg.cmd) {
                     is GetSavedUserCmd -> Pair(state.copy(isLoading = false), None)
                     is LoginCmd -> {
                         if (msg.err is RequestException) {
-                            return Pair(state.copy(isLoading = false, error = msg.err.error.message), None)
+                            state.copy(isLoading = false, error = msg.err.error.message) to None
                         }
-                        return Pair(state.copy(isLoading = false, error = "Error while login"), None)
+                        state.copy(isLoading = false, error = "Error while login") to None
                     }
                     else -> {
                         Timber.e(msg.err)
-                        Pair(state, None)
+                        state to None
                     }
                 }
             }
-            else -> Pair(state, None)
+            else -> state to None
         }
     }
 
     override fun render(state: LoginState) {
         state.apply {
-            if (isLogged) {
-                loginView.hideKeyboard()
-                loginView.goToMainScreen()
-                return
-            }
-            if (isLoading) {
-                loginView.showProgress()
-            } else {
-                loginView.hideProgress()
-            }
-
-            if (btnEnabled) {
-                loginView.enableLoginBtn()
-            } else {
-                loginView.disableLoginBtn()
-            }
-
-            error?.let {
-                loginView.showError()
-                loginView.error(it)
-            } ?: loginView.hideError()
-
-            loginError?.let {
-                loginView.showLoginError(it)
-            } ?: loginView.hideLoginError()
-
-            passError?.let {
-                loginView.showPasswordError(it)
-            } ?: loginView.hidePasswordError()
+            loginView.setProgress(isLoading)
+            loginView.setEnableLoginBtn(btnEnabled)
+            loginView.setError(error)
+            loginView.showLoginError(loginError)
+            loginView.showPasswordError(passError)
         }
     }
 
-    fun render(){
+    fun render() {
         program.render()
     }
 
     override fun call(cmd: Cmd): Single<Msg> {
         return when (cmd) {
             is GetSavedUserCmd -> appPrefs.getUserSavedCredentials()
-                    .map { (login, pass) -> UserCredentialsLoadedMsg(login, pass) }
+                .map { (login, pass) -> UserCredentialsLoadedMsg(login, pass) }
             is SaveUserCredentialsCmd -> appPrefs.saveUserSavedCredentials(cmd.login, cmd.pass)
-                    .map { saved -> UserCredentialsSavedMsg() }
+                .map { saved -> UserCredentialsSavedMsg() }
             is LoginCmd -> apiService.login(cmd.login, cmd.pass)
-                    .map { logged -> LoginResponseMsg(logged) }
+                .map { logged -> LoginResponseMsg(logged) }
+            is GoToMainCmd -> {
+                inView {
+                    navigator.goToMainScreen()
+                }
+            }
             else -> Single.just(Idle)
         }
     }
@@ -193,13 +172,13 @@ class LoginPresenter(private val loginView: ILoginView,
         return (login.startsWith("42") || login == "admin")
     }
 
-    fun addLoginInput(logintextViewText: Observable<CharSequence>) : Disposable {
+    fun addLoginInput(logintextViewText: Observable<CharSequence>): Disposable {
         return logintextViewText.skip(1).subscribe({ login ->
             program.accept(LoginInputMsg(login.toString()))
         })
     }
 
-    fun addPasswordInput(passValueObservable: Observable<CharSequence>) : Disposable {
+    fun addPasswordInput(passValueObservable: Observable<CharSequence>): Disposable {
         return passValueObservable.skip(1).subscribe({ pass ->
             program.accept(PassInputMsg(pass.toString()))
         })

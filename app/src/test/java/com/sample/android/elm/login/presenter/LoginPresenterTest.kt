@@ -45,7 +45,7 @@ class LoginPresenterTest {
 
         //render
         presenter.render(searchForLoginState)
-        verify(view).showProgress()
+        verify(view).setProgress()
         verify(view).disableLoginBtn()
         verify(view).hideLoginError()
         verify(view).hidePasswordError()
@@ -67,7 +67,7 @@ class LoginPresenterTest {
         Mockito.reset(view)
         //render
         presenter.render(startAuthState)
-        verify(view).showProgress()
+        verify(view).setProgress()
         verify(view).disableLoginBtn()
         verify(view).hideLoginError()
         verify(view).hidePasswordError()

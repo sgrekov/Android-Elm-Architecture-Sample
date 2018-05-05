@@ -5,6 +5,7 @@ import com.sample.android.elm.Component
 import com.sample.android.elm.Idle
 import com.sample.android.elm.Init
 import com.sample.android.elm.Msg
+import com.sample.android.elm.Navigator
 import com.sample.android.elm.None
 import com.sample.android.elm.Program
 import com.sample.android.elm.State
@@ -15,10 +16,13 @@ import io.reactivex.Single
 import io.reactivex.disposables.Disposable
 import org.eclipse.egit.github.core.Repository
 
-class MainPresenter(val view: IMainView,
-                    val program: Program<MainState>,
-                    val appPrefs: AppPrefs,
-                    val service: GitHubService) : Component<MainPresenter.MainState> {
+class MainPresenter(
+    val view: IMainView,
+    val program: Program<MainState>,
+    val appPrefs: AppPrefs,
+    val service: GitHubService,
+    val navigator: Navigator
+) : Component<MainPresenter.MainState> {
 
     data class MainState(val isLoading: Boolean = true,
                          val userName: String,
@@ -32,7 +36,7 @@ class MainPresenter(val view: IMainView,
 
     fun init(initialState: MainState?) {
         disposable =
-                program.init(initialState ?: MainState(userName = service.userName), this)
+                program.init(initialState ?: MainState(userName = service.getUserName()), this)
 
         initialState ?: program.accept(Init) //if no saved state, then run init Msg
     }

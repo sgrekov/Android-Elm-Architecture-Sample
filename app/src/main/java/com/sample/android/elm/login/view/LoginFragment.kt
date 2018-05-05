@@ -1,7 +1,6 @@
 package com.sample.android.elm.login.view
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.support.design.widget.TextInputEditText
 import android.support.design.widget.TextInputLayout
@@ -16,11 +15,11 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import com.androidjacoco.sample.R
 import com.jakewharton.rxbinding2.widget.RxTextView
+import com.sample.android.elm.AndroidNavigator
 import com.sample.android.elm.Program
 import com.sample.android.elm.SampleApp
 import com.sample.android.elm.data.AppPrefs
 import com.sample.android.elm.login.presenter.LoginPresenter
-import com.sample.android.elm.main.view.MainActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 
@@ -45,7 +44,7 @@ class LoginFragment : Fragment(), ILoginView {
                 Program(AndroidSchedulers.mainThread()),
                 AppPrefs(context.getSharedPreferences("prefs", Context.MODE_PRIVATE)),
                 (activity.application as SampleApp).service,
-                AndroidSchedulers.mainThread())
+                AndroidNavigator(activity))
         presenter.init()
     }
 
@@ -76,14 +75,6 @@ class LoginFragment : Fragment(), ILoginView {
         presenter.render()
     }
 
-    override fun onAttach(context: Context?) {
-        super.onAttach(context)
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         if (!viewDisposables.isDisposed) {
@@ -97,42 +88,33 @@ class LoginFragment : Fragment(), ILoginView {
         presenter.destroy()
     }
 
-
-    override fun error(error: String) {
-        errorTxt.text = error
+    override fun setProgress(show : Boolean) {
+        loginProgress.visibility = if (show) View.VISIBLE else View.GONE
     }
 
-    override fun showProgress() {
-        loginProgress.visibility = View.VISIBLE
+    override fun showPasswordError(errorText: String?) {
+        errorText?.let {
+            passwordInput.error = errorText
+        }?: run {
+            passwordInput.error = ""
+        }
     }
 
-    override fun hideProgress() {
-        loginProgress.visibility = View.GONE
+    override fun showLoginError(errorText: String?) {
+        errorText?.let {
+            loginInput.error = errorText
+        }?: run {
+            loginInput.error = ""
+        }
     }
 
-
-    override fun showPasswordError(error: String) {
-        passwordInput.error = error
-    }
-
-    override fun showLoginError(error: String) {
-        loginInput.error = error
-    }
-
-    override fun showError() {
-        errorTxt.visibility = View.VISIBLE
-    }
-
-    override fun hideError() {
-        errorTxt.visibility = View.GONE
-    }
-
-    override fun hideLoginError() {
-        loginInput.error = ""
-    }
-
-    override fun hidePasswordError() {
-        passwordInput.error = ""
+    override fun setError(error: String?) {
+        error?.let {
+            errorTxt.visibility = View.VISIBLE
+            errorTxt.text = error
+        }?: run {
+            errorTxt.visibility = View.GONE
+        }
     }
 
     override fun hideKeyboard() {
@@ -141,18 +123,9 @@ class LoginFragment : Fragment(), ILoginView {
         imm?.hideSoftInputFromWindow(loginText.windowToken, 0)
     }
 
-    override fun disableLoginBtn() {
-        loginBtn.isEnabled = false
+    override fun setEnableLoginBtn(enabled: Boolean) {
+        loginBtn.isEnabled = enabled
     }
 
-    override fun enableLoginBtn() {
-        loginBtn.isEnabled = true
-    }
-
-    override fun goToMainScreen() {
-        val i = Intent(activity, MainActivity::class.java)
-        startActivity(i)
-        activity.finish()
-    }
 
 }

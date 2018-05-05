@@ -4,6 +4,7 @@ import com.jakewharton.rxrelay2.BehaviorRelay
 import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
@@ -136,4 +137,10 @@ class Program<S : State>(val outputScheduler: Scheduler) {
         disposableMap.forEach { (_, disposable) -> if (!disposable.isDisposed) disposable.dispose() }
     }
 
+}
+
+inline fun inView(crossinline operations : () -> Unit) : Single<Msg> {
+    return Single.fromCallable {
+        operations()
+    }.subscribeOn(AndroidSchedulers.mainThread()).map { Idle }
 }

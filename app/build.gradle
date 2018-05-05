@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    buildToolsVersion "27.0.3"
     defaultConfig {
         applicationId "com.sample.android.elm"
         minSdkVersion 21
