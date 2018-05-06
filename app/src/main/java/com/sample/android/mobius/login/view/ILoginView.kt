@@ -1,4 +1,4 @@
-package com.sample.android.elm.login.view
+package com.sample.android.mobius.login.view
 
 interface ILoginView {
 

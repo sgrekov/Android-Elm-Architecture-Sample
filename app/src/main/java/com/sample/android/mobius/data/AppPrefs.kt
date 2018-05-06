@@ -1,4 +1,4 @@
-package com.sample.android.elm.data
+package com.sample.android.mobius.data
 
 import android.content.SharedPreferences
 import io.reactivex.Single

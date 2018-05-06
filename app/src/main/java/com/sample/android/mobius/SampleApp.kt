@@ -1,7 +1,7 @@
-package com.sample.android.elm
+package com.sample.android.mobius
 
 import android.app.Application
-import com.sample.android.elm.data.GitHubService
+import com.sample.android.mobius.data.GitHubService
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 

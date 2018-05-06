@@ -1,4 +1,4 @@
-package com.sample.android.elm.main.view
+package com.sample.android.mobius.main.view
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -9,16 +9,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
+import butterknife.BindView
+import butterknife.ButterKnife
 import com.androidjacoco.sample.R
-import com.sample.android.elm.SampleApp
-import com.sample.android.elm.data.GitHubService
-import com.sample.android.elm.main.mobius.IdleEvent
-import com.sample.android.elm.main.mobius.LoadReposEffect
-import com.sample.android.elm.main.mobius.MainEffect
-import com.sample.android.elm.main.mobius.MainEvent
-import com.sample.android.elm.main.mobius.MainInit
-import com.sample.android.elm.main.mobius.MainModel
-import com.sample.android.elm.main.mobius.ReposLoadedEvent
+import com.sample.android.mobius.SampleApp
+import com.sample.android.mobius.data.GitHubService
+import com.sample.android.mobius.main.mobius.IdleEvent
+import com.sample.android.mobius.main.mobius.LoadReposEffect
+import com.sample.android.mobius.main.mobius.MainEffect
+import com.sample.android.mobius.main.mobius.MainEvent
+import com.sample.android.mobius.main.mobius.MainInit
+import com.sample.android.mobius.main.mobius.MainModel
+import com.sample.android.mobius.main.mobius.ReposLoadedEvent
+import com.sample.android.mobius.next
 import com.spotify.mobius.First
 import com.spotify.mobius.MobiusLoop
 import com.spotify.mobius.Next
@@ -37,9 +40,9 @@ class MainActivity : AppCompatActivity(), IMainView,
     Update<MainModel, MainEvent, MainEffect>,
     ObservableTransformer<MainEffect, MainEvent> {
 
-    lateinit var reposList: RecyclerView
-    lateinit var progressBar: ProgressBar
-    lateinit var errorText: TextView
+    @BindView(R.id.repos_list) lateinit var reposList: RecyclerView
+    @BindView(R.id.repos_progress) lateinit var progressBar: ProgressBar
+    @BindView(R.id.error_text) lateinit var errorText: TextView
 
     lateinit var api: GitHubService
 
@@ -56,15 +59,12 @@ class MainActivity : AppCompatActivity(), IMainView,
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        ButterKnife.bind(this)
+
+        reposList.layoutManager = LinearLayoutManager(applicationContext)
 
         api = (application as SampleApp).service
         controller = MobiusAndroid.controller(loopFactory, MainModel(userName = api.getUserName()))
-
-        reposList = findViewById(R.id.repos_list) as RecyclerView
-        reposList.layoutManager = LinearLayoutManager(applicationContext)
-        progressBar = findViewById(R.id.repos_progress) as ProgressBar
-        errorText = findViewById(R.id.error_text) as TextView
-
         controller.connect(RxConnectables.fromTransformer(this::connectViews))
     }
 
@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity(), IMainView,
 
     override fun update(model: MainModel, event: MainEvent): Next<MainModel, MainEffect> {
         return when (event) {
-            is MainInit -> Next.next(model, setOf(LoadReposEffect(model.userName)))
+            is MainInit -> next(model, LoadReposEffect(model.userName))
             is ReposLoadedEvent -> Next.next(model.copy(isLoading = false, reposList = event.reposList))
             else -> Next.noChange()
         }

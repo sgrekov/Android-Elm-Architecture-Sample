@@ -1,4 +1,4 @@
-package com.sample.android.elm.data
+package com.sample.android.mobius.data
 
 import io.reactivex.Single
 import org.eclipse.egit.github.core.Repository

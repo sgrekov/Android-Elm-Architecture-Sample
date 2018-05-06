@@ -9,10 +9,10 @@
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
-            android:name="com.sample.android.elm.SampleApp"
+            android:name="com.sample.android.mobius.SampleApp"
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
-        <activity android:name="com.sample.android.elm.login.view.LoginActivity">
+        <activity android:name="com.sample.android.mobius.login.view.LoginActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -20,7 +20,7 @@
             </intent-filter>
         </activity>
         <activity
-                android:name="com.sample.android.elm.main.view.MainActivity"
+                android:name="com.sample.android.mobius.main.view.MainActivity"
                 android:label="@string/title_activity_main"
                 >
         </activity>

@@ -1,11 +1,11 @@
-package com.sample.android.elm.login.presenter
+package com.sample.android.mobius.login.presenter
 
-import com.sample.android.elm.Init
-import com.sample.android.elm.None
-import com.sample.android.elm.Program
-import com.sample.android.elm.data.IApiService
-import com.sample.android.elm.data.IAppPrefs
-import com.sample.android.elm.login.view.ILoginView
+import com.sample.android.mobius.Init
+import com.sample.android.mobius.None
+import com.sample.android.mobius.Program
+import com.sample.android.mobius.data.IApiService
+import com.sample.android.mobius.data.IAppPrefs
+import com.sample.android.mobius.login.view.ILoginView
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.instanceOf

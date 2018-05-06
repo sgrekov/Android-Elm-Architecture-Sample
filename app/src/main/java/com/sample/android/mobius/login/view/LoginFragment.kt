@@ -1,4 +1,4 @@
-package com.sample.android.elm.login.view
+package com.sample.android.mobius.login.view
 
 import android.content.Context
 import android.os.Bundle
@@ -13,33 +13,37 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.ProgressBar
 import android.widget.TextView
+import butterknife.BindView
+import butterknife.ButterKnife
+import butterknife.Unbinder
 import com.androidjacoco.sample.R
 import com.jakewharton.rxbinding2.view.RxView
 import com.jakewharton.rxbinding2.widget.RxCompoundButton
 import com.jakewharton.rxbinding2.widget.RxTextView
-import com.sample.android.elm.AndroidNavigator
-import com.sample.android.elm.Navigator
-import com.sample.android.elm.SampleApp
-import com.sample.android.elm.data.AppPrefs
-import com.sample.android.elm.data.GitHubService
-import com.sample.android.elm.login.mobius.GetSavedUserEffect
-import com.sample.android.elm.login.mobius.GoToMainEffect
-import com.sample.android.elm.login.mobius.IdleEvent
-import com.sample.android.elm.login.mobius.IsSaveCredentialsEvent
-import com.sample.android.elm.login.mobius.LoginActionEffect
-import com.sample.android.elm.login.mobius.LoginClickEvent
-import com.sample.android.elm.login.mobius.LoginEffect
-import com.sample.android.elm.login.mobius.LoginErrorEvent
-import com.sample.android.elm.login.mobius.LoginEvent
-import com.sample.android.elm.login.mobius.LoginInit
-import com.sample.android.elm.login.mobius.LoginInputEvent
-import com.sample.android.elm.login.mobius.LoginModel
-import com.sample.android.elm.login.mobius.LoginResponseEvent
-import com.sample.android.elm.login.mobius.PassInputEvent
-import com.sample.android.elm.login.mobius.SaveUserCredentialsEffect
-import com.sample.android.elm.login.mobius.UserCredentialsLoadedEvent
-import com.sample.android.elm.login.mobius.UserCredentialsSavedEvent
-import com.sample.android.elm.login.mobius.inView
+import com.sample.android.mobius.AndroidNavigator
+import com.sample.android.mobius.Navigator
+import com.sample.android.mobius.SampleApp
+import com.sample.android.mobius.data.AppPrefs
+import com.sample.android.mobius.data.GitHubService
+import com.sample.android.mobius.login.mobius.GetSavedUserEffect
+import com.sample.android.mobius.login.mobius.GoToMainEffect
+import com.sample.android.mobius.login.mobius.IdleEvent
+import com.sample.android.mobius.login.mobius.IsSaveCredentialsEvent
+import com.sample.android.mobius.login.mobius.LoginActionEffect
+import com.sample.android.mobius.login.mobius.LoginClickEvent
+import com.sample.android.mobius.login.mobius.LoginEffect
+import com.sample.android.mobius.login.mobius.LoginErrorEvent
+import com.sample.android.mobius.login.mobius.LoginEvent
+import com.sample.android.mobius.login.mobius.LoginInit
+import com.sample.android.mobius.login.mobius.LoginInputEvent
+import com.sample.android.mobius.login.mobius.LoginModel
+import com.sample.android.mobius.login.mobius.LoginResponseEvent
+import com.sample.android.mobius.login.mobius.PassInputEvent
+import com.sample.android.mobius.login.mobius.SaveUserCredentialsEffect
+import com.sample.android.mobius.login.mobius.UserCredentialsLoadedEvent
+import com.sample.android.mobius.login.mobius.UserCredentialsSavedEvent
+import com.sample.android.mobius.login.mobius.inView
+import com.sample.android.mobius.next
 import com.spotify.mobius.First
 import com.spotify.mobius.MobiusLoop
 import com.spotify.mobius.Next
@@ -62,6 +66,17 @@ class LoginFragment : Fragment(), ILoginView,
     lateinit var api: GitHubService
     lateinit var navigator: Navigator
 
+    @BindView(R.id.login_til) lateinit var loginInput: TextInputLayout
+    @BindView(R.id.login) lateinit var loginText: TextInputEditText
+    @BindView(R.id.password_til) lateinit var passwordInput: TextInputLayout
+    @BindView(R.id.password) lateinit var passwordText: TextInputEditText
+    @BindView(R.id.login_btn) lateinit var loginBtn: Button
+    @BindView(R.id.error) lateinit var errorTxt: TextView
+    @BindView(R.id.login_progress) lateinit var loginProgress: ProgressBar
+    @BindView(R.id.save_credentials_cb) lateinit var saveCredentialsCb: CheckBox
+
+    lateinit var unbinder : Unbinder
+
     var loopFactory: MobiusLoop.Factory<LoginModel, LoginEvent, LoginEffect> =
         RxMobius
             .loop(this, this)
@@ -72,15 +87,6 @@ class LoginFragment : Fragment(), ILoginView,
 
     private val controller: MobiusLoop.Controller<LoginModel, LoginEvent> =
         MobiusAndroid.controller(loopFactory, LoginModel())
-
-    lateinit var loginInput: TextInputLayout
-    lateinit var loginText: TextInputEditText
-    lateinit var passwordInput: TextInputLayout
-    lateinit var passwordText: TextInputEditText
-    lateinit var loginBtn: Button
-    lateinit var errorTxt: TextView
-    lateinit var loginProgress: ProgressBar
-    lateinit var saveCredentialsCb: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,14 +101,7 @@ class LoginFragment : Fragment(), ILoginView,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater!!.inflate(R.layout.fragment_login, container, false)
-        loginInput = view.findViewById(R.id.login_til) as TextInputLayout
-        loginText = view.findViewById(R.id.login) as TextInputEditText
-        passwordInput = view.findViewById(R.id.password_til) as TextInputLayout
-        passwordText = view.findViewById(R.id.password) as TextInputEditText
-        loginBtn = view.findViewById(R.id.login_btn) as Button
-        errorTxt = view.findViewById(R.id.error) as TextView
-        loginProgress = view.findViewById(R.id.login_progress) as ProgressBar
-        saveCredentialsCb = view.findViewById(R.id.save_credentials_cb) as CheckBox
+        unbinder = ButterKnife.bind(this, view)
         return view
     }
 
@@ -129,12 +128,12 @@ class LoginFragment : Fragment(), ILoginView,
 
     override fun update(state: LoginModel, event: LoginEvent): Next<LoginModel, LoginEffect> {
         return when (event) {
-            is LoginInit -> Next.next(state.copy(isLoading = true), setOf(GetSavedUserEffect))
+            is LoginInit -> next(state.copy(isLoading = true), GetSavedUserEffect)
             is UserCredentialsLoadedEvent ->
                 return if (event.err == null) {
-                    Next.next(
+                    next(
                         state.copy(login = event.login, pass = event.pass),
-                        setOf(LoginActionEffect(event.login, event.pass))
+                        LoginActionEffect(event.login, event.pass)
                     )
                 } else {
                     Next.next(
@@ -144,11 +143,11 @@ class LoginFragment : Fragment(), ILoginView,
             is LoginResponseEvent -> {
                 return when {
                     event.err != null -> Next.next(state.copy(isLoading = false, error = event.err.message))
-                    state.saveUser -> Next.next(state, setOf(SaveUserCredentialsEffect(state.login, state.pass)))
-                    else -> Next.next(state, setOf(GoToMainEffect))
+                    state.saveUser -> next(state, SaveUserCredentialsEffect(state.login, state.pass))
+                    else -> next(state, GoToMainEffect)
                 }
             }
-            is UserCredentialsSavedEvent -> Next.next(state, setOf(GoToMainEffect))
+            is UserCredentialsSavedEvent -> next(state, GoToMainEffect)
             is IsSaveCredentialsEvent -> Next.next(state.copy(saveUser = event.checked))
             is LoginInputEvent -> {
                 if (!validateLogin(event.login))
@@ -169,9 +168,9 @@ class LoginFragment : Fragment(), ILoginView,
                 if (checkPass(state.pass)) {
                     return Next.next(state.copy(passError = "Password is not valid"))
                 }
-                return Next.next(
+                return next(
                     state.copy(isLoading = true, error = null),
-                    setOf(LoginActionEffect(state.login, state.pass))
+                    LoginActionEffect(state.login, state.pass)
                 )
             }
             is LoginErrorEvent -> {
@@ -251,6 +250,7 @@ class LoginFragment : Fragment(), ILoginView,
 
     override fun onDestroy() {
         super.onDestroy()
+        unbinder.unbind()
     }
 
     override fun setProgress(show: Boolean) {

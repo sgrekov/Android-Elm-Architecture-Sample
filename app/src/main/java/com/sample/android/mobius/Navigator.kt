@@ -1,4 +1,4 @@
-package com.sample.android.elm
+package com.sample.android.mobius
 
 interface Navigator {
     fun goToMainScreen()

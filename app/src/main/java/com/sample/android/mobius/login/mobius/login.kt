@@ -1,4 +1,4 @@
-package com.sample.android.elm.login.mobius
+package com.sample.android.mobius.login.mobius
 
 import io.reactivex.Observable
 import io.reactivex.Single
