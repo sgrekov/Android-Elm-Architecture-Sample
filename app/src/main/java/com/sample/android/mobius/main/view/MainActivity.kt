@@ -11,34 +11,27 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import butterknife.BindView
 import butterknife.ButterKnife
-import com.androidjacoco.sample.R
+import com.sample.android.mobius.R
 import com.sample.android.mobius.SampleApp
 import com.sample.android.mobius.data.GitHubService
-import com.sample.android.mobius.main.mobius.IdleEvent
-import com.sample.android.mobius.main.mobius.LoadReposEffect
-import com.sample.android.mobius.main.mobius.MainEffect
-import com.sample.android.mobius.main.mobius.MainEvent
-import com.sample.android.mobius.main.mobius.MainInit
-import com.sample.android.mobius.main.mobius.MainModel
-import com.sample.android.mobius.main.mobius.ReposLoadedEvent
-import com.sample.android.mobius.next
+import com.sample.android.mobius.domain.main.IdleEvent
+import com.sample.android.mobius.domain.main.LoadReposEffect
+import com.sample.android.mobius.domain.main.MainEffect
+import com.sample.android.mobius.domain.main.MainEvent
+import com.sample.android.mobius.domain.main.MainModel
+import com.sample.android.mobius.domain.main.MainUpdate
+import com.sample.android.mobius.domain.main.ReposLoadedEvent
 import com.spotify.mobius.First
 import com.spotify.mobius.MobiusLoop
-import com.spotify.mobius.Next
-import com.spotify.mobius.Update
 import com.spotify.mobius.android.AndroidLogger
 import com.spotify.mobius.android.MobiusAndroid
 import com.spotify.mobius.rx2.RxConnectables
 import com.spotify.mobius.rx2.RxMobius
 import io.reactivex.Observable
-import io.reactivex.ObservableSource
-import io.reactivex.ObservableTransformer
 import io.reactivex.android.schedulers.AndroidSchedulers
 import org.eclipse.egit.github.core.Repository
 
-class MainActivity : AppCompatActivity(), IMainView,
-    Update<MainModel, MainEvent, MainEffect>,
-    ObservableTransformer<MainEffect, MainEvent> {
+class MainActivity : AppCompatActivity(), IMainView {
 
     @BindView(R.id.repos_list) lateinit var reposList: RecyclerView
     @BindView(R.id.repos_progress) lateinit var progressBar: ProgressBar
@@ -46,13 +39,24 @@ class MainActivity : AppCompatActivity(), IMainView,
 
     lateinit var api: GitHubService
 
+    var rxEffectHandler =
+        RxMobius.subtypeEffectHandler<MainEffect, MainEvent>()
+            .add(LoadReposEffect::class.java, this::handleLoadRepos)
+            .build()
+
     var loopFactory: MobiusLoop.Factory<MainModel, MainEvent, MainEffect> =
         RxMobius
-            .loop(this, this)
+            .loop(MainUpdate(), rxEffectHandler)
             .init {
-                First.first(MainModel(userName = api.getUserName()), setOf(LoadReposEffect(api.getUserName())))
+                First.first(
+                    MainModel(userName = api.getUserName()), setOf(
+                        LoadReposEffect(
+                            api.getUserName()
+                        )
+                    ))
             }
             .logger(AndroidLogger.tag<MainModel, MainEvent, MainEffect>("my_app"))
+
 
     lateinit var controller: MobiusLoop.Controller<MainModel, MainEvent>
 
@@ -64,7 +68,9 @@ class MainActivity : AppCompatActivity(), IMainView,
         reposList.layoutManager = LinearLayoutManager(applicationContext)
 
         api = (application as SampleApp).service
-        controller = MobiusAndroid.controller(loopFactory, MainModel(userName = api.getUserName()))
+        controller = MobiusAndroid.controller(loopFactory,
+            MainModel(userName = api.getUserName())
+        )
         controller.connect(RxConnectables.fromTransformer(this::connectViews))
     }
 
@@ -78,20 +84,13 @@ class MainActivity : AppCompatActivity(), IMainView,
         controller.stop()
     }
 
-    override fun update(model: MainModel, event: MainEvent): Next<MainModel, MainEffect> {
-        return when (event) {
-            is MainInit -> next(model, LoadReposEffect(model.userName))
-            is ReposLoadedEvent -> Next.next(model.copy(isLoading = false, reposList = event.reposList))
-            else -> Next.noChange()
-        }
-    }
-
-    override fun apply(upstream: Observable<MainEffect>): ObservableSource<MainEvent> {
-        return upstream.flatMap { effect ->
-            return@flatMap when (effect) {
-                is LoadReposEffect ->
-                    api.getStarredRepos(effect.userName).map { repos -> ReposLoadedEvent(repos) }.toObservable()
-            }
+    fun handleLoadRepos(request: Observable<LoadReposEffect>): Observable<MainEvent> {
+        return request.flatMap { effect ->
+            api.getStarredRepos(effect.userName).map { repos ->
+                ReposLoadedEvent(
+                    repos
+                )
+            }.toObservable()
         }
     }
 

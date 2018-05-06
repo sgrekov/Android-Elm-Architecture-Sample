@@ -22,6 +22,7 @@ allprojects {
     repositories {
         jcenter()
         maven { url 'https://repo.eclipse.org/content/groups/releases/' }
+        google()
     }
 }
 

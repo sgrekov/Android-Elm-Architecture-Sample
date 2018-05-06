@@ -1,4 +1,4 @@
-package com.sample.android.mobius.main.mobius
+package com.sample.android.mobius.domain.main
 
 import org.eclipse.egit.github.core.Repository
 

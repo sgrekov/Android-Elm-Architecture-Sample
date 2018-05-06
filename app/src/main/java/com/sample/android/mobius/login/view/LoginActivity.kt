@@ -2,7 +2,7 @@ package com.sample.android.mobius.login.view
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import com.androidjacoco.sample.R
+import com.sample.android.mobius.R
 
 class LoginActivity : AppCompatActivity() {
 
