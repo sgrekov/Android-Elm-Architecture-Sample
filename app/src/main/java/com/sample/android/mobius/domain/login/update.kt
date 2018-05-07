@@ -15,25 +15,6 @@ class LoginUpdate : Update<LoginModel, LoginEvent, LoginEffect> {
                 effects(LoginRequestEffect(event.login, event.pass))
             )
             is UserCredentialsErrorEvent -> Next.next(model.copy(isLoading = false))
-            is LoginResponseEvent -> {
-                return when {
-                    event.err != null -> Next.next(model.copy(isLoading = false, error = event.err.message))
-                    model.saveUser -> Next.dispatch(
-                        effects(
-                            SaveUserCredentialsEffect(
-                                model.login,
-                                model.pass
-                            )
-                        )
-                    )
-                    else -> Next.dispatch(effects(GoToMainEffect))
-                }
-            }
-            is LoginResponseErrorEvent -> Next.next(
-                model.copy(isLoading = false, error = event.err?.message)
-            )
-            is UserCredentialsSavedEvent -> Next.dispatch(effects(GoToMainEffect))
-            is IsSaveCredentialsEvent -> Next.next(model.copy(saveUser = event.checked))
             is LoginInputEvent -> {
                 if (!validateLogin(event.login))
                     Next.next(model.copy(login = event.login, btnEnabled = false))
@@ -58,7 +39,24 @@ class LoginUpdate : Update<LoginModel, LoginEvent, LoginEffect> {
                     effects(LoginRequestEffect(model.login, model.pass))
                 )
             }
-            IdleEvent -> Next.noChange()
+            is IsSaveCredentialsEvent -> Next.next(model.copy(saveUser = event.checked))
+            is LoginResponseEvent -> {
+                return when {
+                    model.saveUser -> Next.dispatch(
+                        effects(
+                            SaveUserCredentialsEffect(
+                                model.login,
+                                model.pass
+                            )
+                        )
+                    )
+                    else -> Next.dispatch(effects(GoToMainEffect))
+                }
+            }
+            is LoginResponseErrorEvent -> Next.next(
+                model.copy(isLoading = false, error = event.err?.message)
+            )
+            is UserCredentialsSavedEvent -> Next.dispatch(effects(GoToMainEffect))
         }
     }
 
@@ -70,7 +68,7 @@ internal fun validatePass(pass: CharSequence): Boolean {
 }
 
 internal fun validateLogin(login: CharSequence): Boolean {
-    return login.length > 3
+    return login.length > 4
 }
 
 internal fun checkPass(pass: CharSequence): Boolean {

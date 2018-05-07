@@ -1,95 +1,127 @@
 package com.sample.android.mobius.login.presenter
 
-import com.sample.android.mobius.Init
-import com.sample.android.mobius.None
-import com.sample.android.mobius.Program
-import com.sample.android.mobius.data.IApiService
-import com.sample.android.mobius.data.IAppPrefs
-import com.sample.android.mobius.login.view.ILoginView
-import io.reactivex.Single
-import io.reactivex.schedulers.Schedulers
-import org.hamcrest.CoreMatchers.instanceOf
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThat
-import org.junit.Before
+import com.sample.android.mobius.domain.login.GoToMainEffect
+import com.sample.android.mobius.domain.login.LoginClickEvent
+import com.sample.android.mobius.domain.login.LoginEffect
+import com.sample.android.mobius.domain.login.LoginInputEvent
+import com.sample.android.mobius.domain.login.LoginModel
+import com.sample.android.mobius.domain.login.LoginRequestEffect
+import com.sample.android.mobius.domain.login.LoginResponseEvent
+import com.sample.android.mobius.domain.login.LoginUpdate
+import com.sample.android.mobius.domain.login.PassInputEvent
+import com.sample.android.mobius.domain.login.UserCredentialsErrorEvent
+import com.sample.android.mobius.domain.login.UserCredentialsLoadedEvent
+import com.spotify.mobius.test.NextMatchers.hasEffects
+import com.spotify.mobius.test.NextMatchers.hasModel
+import com.spotify.mobius.test.NextMatchers.hasNoEffects
+import com.spotify.mobius.test.UpdateSpec
+import com.spotify.mobius.test.UpdateSpec.assertThatNext
 import org.junit.Test
-import org.mockito.Mockito
-import org.mockito.Mockito.*
 
 class LoginPresenterTest {
 
-    lateinit var presenter: LoginPresenter
-    lateinit var view: ILoginView
-    lateinit var loginService: IApiService
-    lateinit var prefs: IAppPrefs
-    lateinit var program: Program
+    val spec = UpdateSpec(LoginUpdate())
 
-    @Before
-    fun setUp() {
-        view = mock(ILoginView::class.java)
-        loginService = mock(IApiService::class.java)
-        prefs = mock(IAppPrefs::class.java)
-        program = Program(Schedulers.trampoline())
-        presenter = LoginPresenter(view, program, prefs, loginService, Schedulers.trampoline())
+    @Test
+    fun initWithSavedLogin_StartLoginRequest() {
+        //login screen init and look for saved credentials in preferences
+        var initState = LoginModel()
+        //update
+        spec.given(initState).`when`(
+            UserCredentialsLoadedEvent("login", "pass")
+        ).then(
+            assertThatNext(
+                hasModel(initState.copy(login = "login", pass = "pass")),
+                hasEffects(LoginRequestEffect("login", "pass") as LoginEffect)
+            )
+        )
     }
 
     @Test
-    fun initWithSavedLogin_HaveSavedCredentials_LoginOk() {
+    fun initWithSavedLogin_NoSavedCredentialsInPrefs() {
         //login screen init and look for saved credentials in preferences
-        var initState = LoginPresenter.LoginState()
+        var initState = LoginModel()
         //update
-        val (searchForLoginState, searchForLoginCmd) = presenter.update(Init, initState)
+        spec.given(initState).`when`(
+            UserCredentialsErrorEvent(NoSuchElementException())
+        ).then(
+            assertThatNext(
+                hasModel(initState.copy(isLoading = false)),
+                hasNoEffects()
+            )
+        )
+    }
 
-        assertEquals(initState.copy(isLoading = true), searchForLoginState)
-        assertThat(searchForLoginCmd, instanceOf(LoginPresenter.GetSavedUserCmd::class.java))
-
-        //render
-        presenter.render(searchForLoginState)
-        verify(view).setProgress()
-        verify(view).disableLoginBtn()
-        verify(view).hideLoginError()
-        verify(view).hidePasswordError()
-        verify(view).hideError()
-        verifyNoMoreInteractions(view)
-
-        Mockito.`when`(prefs.getUserSavedCredentials()).thenReturn(Single.just(Pair("login", "password")))
-        //call
-        val loadedCredentialsMsg = presenter.call(searchForLoginCmd)
-
-        //credentials loaded and start auth http call
+    @Test
+    fun userStartTyping() {
+        var initState = LoginModel(isLoading = false)
         //update
-        val (startAuthState, startAuthCmd) = presenter.update(loadedCredentialsMsg.blockingGet(), searchForLoginState)
-        assertEquals((searchForLoginState as LoginPresenter.LoginState).copy(login = "login", pass = "password"), startAuthState)
-        assertThat(startAuthCmd, instanceOf(LoginPresenter.LoginCmd::class.java))
-        assertEquals("login", (startAuthCmd as LoginPresenter.LoginCmd).login)
-        assertEquals("password", startAuthCmd.pass)
+        spec.given(initState).`when`(
+            LoginInputEvent("l")
+        ).then(
+            assertThatNext(
+                hasModel(initState.copy(login = "l", btnEnabled = false)),
+                hasNoEffects()
+            )
+        )
 
-        Mockito.reset(view)
-        //render
-        presenter.render(startAuthState)
-        verify(view).setProgress()
-        verify(view).disableLoginBtn()
-        verify(view).hideLoginError()
-        verify(view).hidePasswordError()
-        verify(view).hideError()
-        verifyNoMoreInteractions(view)
+        spec.given(initState).`when`(
+            LoginInputEvent("lo")
+        ).then(
+            assertThatNext(
+                hasModel(initState.copy(login = "lo", btnEnabled = false)),
+                hasNoEffects()
+            )
+        )
 
-        Mockito.`when`(loginService.login("login", "password")).thenReturn(Single.just(true))
-        //call
-        val authOkMsg = presenter.call(startAuthCmd)
+        spec.given(initState).`when`(
+            LoginInputEvent("login")
+        ).then(
+            assertThatNext(
+                hasModel(initState.copy(login = "login", btnEnabled = false)),
+                hasNoEffects()
+            )
+        )
 
-        //auth OK, go to main screen
-        //update
-        val (loggedState, noneCmd) = presenter.update(authOkMsg.blockingGet(), startAuthState)
-        assertThat(noneCmd, instanceOf(None::class.java))
+        val stateAfterLogin = initState.copy(login = "login")
+        spec.given(stateAfterLogin).`when`(
+            PassInputEvent("pass")
+        ).then(
+            assertThatNext(
+                hasModel(stateAfterLogin.copy(pass = "pass", btnEnabled = false)),
+                hasNoEffects()
+            )
+        )
 
-        Mockito.reset(view)
-        //render
-        presenter.render(loggedState)
-        verify(view).goToMainScreen()
-        verify(view).hideKeyboard()
-        verifyNoMoreInteractions(view)
+        spec.given(stateAfterLogin).`when`(
+            PassInputEvent("passwo")
+        ).then(
+            assertThatNext(
+                hasModel(stateAfterLogin.copy(pass = "passwo", btnEnabled = true)),
+                hasNoEffects()
+            )
+        )
+    }
 
+    @Test
+    fun startLoginRequest() {
+        val loginPassState = LoginModel().copy(login = "login", pass = "passwo", btnEnabled = true, isLoading = false)
+        spec.given(loginPassState).`when`(
+            LoginClickEvent
+        ).then(
+            assertThatNext(
+                hasModel(loginPassState.copy(isLoading = true)),
+                hasEffects(LoginRequestEffect(login = "login", pass = "passwo") as LoginEffect)
+            )
+        )
+
+        spec.given(loginPassState.copy(isLoading = true)).`when`(
+            LoginResponseEvent(logged = true)
+        ).then(
+            assertThatNext(
+                hasEffects(GoToMainEffect as LoginEffect)
+            )
+        )
     }
 
 
