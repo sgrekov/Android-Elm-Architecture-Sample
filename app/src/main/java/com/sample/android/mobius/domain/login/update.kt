@@ -57,6 +57,7 @@ class LoginUpdate : Update<LoginModel, LoginEvent, LoginEffect> {
                 model.copy(isLoading = false, error = event.err?.message)
             )
             is UserCredentialsSavedEvent -> Next.dispatch(effects(GoToMainEffect))
+            is NetworkStateEvent -> Next.noChange()
         }
     }
 

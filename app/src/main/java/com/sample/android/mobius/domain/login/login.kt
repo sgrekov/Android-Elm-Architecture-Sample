@@ -18,6 +18,7 @@ data class IsSaveCredentialsEvent(val checked: Boolean) : LoginEvent()
 data class LoginResponseEvent(val logged: Boolean) : LoginEvent()
 data class LoginResponseErrorEvent(val err: Throwable? = null) : LoginEvent()
 object LoginClickEvent : LoginEvent()
+data class NetworkStateEvent(val connected : Boolean) : LoginEvent()
 
 
 data class LoginModel(

@@ -37,16 +37,19 @@ import com.sample.android.mobius.domain.login.LoginRequestEffect
 import com.sample.android.mobius.domain.login.LoginResponseErrorEvent
 import com.sample.android.mobius.domain.login.LoginResponseEvent
 import com.sample.android.mobius.domain.login.LoginUpdate
+import com.sample.android.mobius.domain.login.NetworkStateEvent
 import com.sample.android.mobius.domain.login.PassInputEvent
 import com.sample.android.mobius.domain.login.SaveUserCredentialsEffect
 import com.sample.android.mobius.domain.login.UserCredentialsErrorEvent
 import com.sample.android.mobius.domain.login.UserCredentialsLoadedEvent
 import com.sample.android.mobius.domain.login.UserCredentialsSavedEvent
+import com.spotify.mobius.EventSource
 import com.spotify.mobius.First
 import com.spotify.mobius.MobiusLoop
 import com.spotify.mobius.android.AndroidLogger
 import com.spotify.mobius.android.MobiusAndroid
 import com.spotify.mobius.rx2.RxConnectables
+import com.spotify.mobius.rx2.RxEventSources
 import com.spotify.mobius.rx2.RxMobius
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -77,12 +80,17 @@ class LoginFragment : Fragment(), ILoginView {
             .add(GoToMainEffect::class.java, this::handleNavigateToMainScreen, AndroidSchedulers.mainThread())
             .build()
 
+    val networkObservable : Observable<LoginEvent> = Observable.just(NetworkStateEvent(true))
+
+    val eventSource : EventSource<LoginEvent> = RxEventSources.fromObservables(networkObservable)
+
     var loopFactory: MobiusLoop.Factory<LoginModel, LoginEvent, LoginEffect> =
         RxMobius
             .loop(LoginUpdate(), rxEffectHandler)
             .init {
                 First.first(LoginModel(), setOf(GetSavedUserEffect))
             }
+            .eventSource(eventSource)
             .logger(AndroidLogger.tag<LoginModel, LoginEvent, LoginEffect>("my_app"))
 
     private val controller: MobiusLoop.Controller<LoginModel, LoginEvent> =
