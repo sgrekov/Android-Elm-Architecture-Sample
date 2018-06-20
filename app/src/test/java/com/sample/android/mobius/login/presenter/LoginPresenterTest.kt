@@ -27,7 +27,7 @@ class LoginPresenterTest {
         //login screen init and look for saved credentials in preferences
         var initState = LoginModel()
         //update
-        spec.given(initState).`when`(
+        spec.given(initState).whenEvent(
             UserCredentialsLoadedEvent("login", "pass")
         ).then(
             assertThatNext(
@@ -42,7 +42,7 @@ class LoginPresenterTest {
         //login screen init and look for saved credentials in preferences
         var initState = LoginModel()
         //update
-        spec.given(initState).`when`(
+        spec.given(initState).whenEvent(
             UserCredentialsErrorEvent(NoSuchElementException())
         ).then(
             assertThatNext(
@@ -56,7 +56,7 @@ class LoginPresenterTest {
     fun userStartTyping() {
         var initState = LoginModel(isLoading = false)
         //update
-        spec.given(initState).`when`(
+        spec.given(initState).whenEvent(
             LoginInputEvent("l")
         ).then(
             assertThatNext(
@@ -65,7 +65,7 @@ class LoginPresenterTest {
             )
         )
 
-        spec.given(initState).`when`(
+        spec.given(initState).whenEvent(
             LoginInputEvent("lo")
         ).then(
             assertThatNext(
@@ -74,7 +74,7 @@ class LoginPresenterTest {
             )
         )
 
-        spec.given(initState).`when`(
+        spec.given(initState).whenEvent(
             LoginInputEvent("login")
         ).then(
             assertThatNext(
@@ -84,7 +84,7 @@ class LoginPresenterTest {
         )
 
         val stateAfterLogin = initState.copy(login = "login")
-        spec.given(stateAfterLogin).`when`(
+        spec.given(stateAfterLogin).whenEvent(
             PassInputEvent("pass")
         ).then(
             assertThatNext(
@@ -93,7 +93,7 @@ class LoginPresenterTest {
             )
         )
 
-        spec.given(stateAfterLogin).`when`(
+        spec.given(stateAfterLogin).whenEvent(
             PassInputEvent("passwo")
         ).then(
             assertThatNext(
@@ -106,7 +106,7 @@ class LoginPresenterTest {
     @Test
     fun startLoginRequest() {
         val loginPassState = LoginModel().copy(login = "login", pass = "passwo", btnEnabled = true, isLoading = false)
-        spec.given(loginPassState).`when`(
+        spec.given(loginPassState).whenEvent(
             LoginClickEvent
         ).then(
             assertThatNext(
@@ -115,7 +115,7 @@ class LoginPresenterTest {
             )
         )
 
-        spec.given(loginPassState.copy(isLoading = true)).`when`(
+        spec.given(loginPassState.copy(isLoading = true)).whenEvent(
             LoginResponseEvent(logged = true)
         ).then(
             assertThatNext(
