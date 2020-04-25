@@ -18,7 +18,7 @@ import com.spotify.mobius.test.UpdateSpec
 import com.spotify.mobius.test.UpdateSpec.assertThatNext
 import org.junit.Test
 
-class LoginPresenterTest {
+class LoginUpdateTest {
 
     val spec = UpdateSpec(LoginUpdate())
 
