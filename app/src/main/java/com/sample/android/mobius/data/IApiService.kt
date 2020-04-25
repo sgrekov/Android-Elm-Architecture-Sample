@@ -9,5 +9,5 @@ interface IApiService {
 
     fun login(login: String, pass: String): Single<Boolean>
 
-    fun getStarredRepos(userName: String): Single<List<Repository>>
+    fun getStarredRepos(): Single<List<Repository>>
 }

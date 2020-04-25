@@ -9,24 +9,25 @@ import org.eclipse.egit.github.core.service.UserService
 
 class GitHubService(private val scheduler: Scheduler) : IApiService {
     private var client = GitHubClient()
+    private var userName : String = ""
+        @Synchronized get
+        @Synchronized set
 
     override fun login(login: String, pass: String): Single<Boolean> {
         return Single.fromCallable {
-            client.setCredentials(login, pass)
-            val userService = UserService(client)
-            userService.user != null
+            userName = login
+            true
         }.subscribeOn(scheduler)
     }
 
     override fun getUserName(): String {
-        return client.user
+        return userName
     }
 
-
-    override fun getStarredRepos(userName: String): Single<List<Repository>> {
+    override fun getStarredRepos(): Single<List<Repository>> {
         return Single.fromCallable {
             val stargazerService = StargazerService(client)
-            stargazerService.starred
+            stargazerService.getStarred(userName)
         }.subscribeOn(scheduler)
     }
 }

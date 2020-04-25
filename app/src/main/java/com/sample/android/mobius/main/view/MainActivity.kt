@@ -39,21 +39,17 @@ class MainActivity : AppCompatActivity(), IMainView {
 
     lateinit var api: GitHubService
 
-    var rxEffectHandler =
-        RxMobius.subtypeEffectHandler<MainEffect, MainEvent>()
-            .add(LoadReposEffect::class.java, this::handleLoadRepos)
-            .build()
+    var rxEffectHandler = RxMobius.subtypeEffectHandler<MainEffect, MainEvent>()
+        .add(LoadReposEffect::class.java, this::handleLoadRepos)
+        .build()
 
     var loopFactory: MobiusLoop.Factory<MainModel, MainEvent, MainEffect> =
         RxMobius
             .loop(MainUpdate(), rxEffectHandler)
             .init {
                 First.first(
-                    MainModel(userName = api.getUserName()), setOf(
-                        LoadReposEffect(
-                            api.getUserName()
-                        )
-                    ))
+                    MainModel(userName = api.getUserName()), setOf(LoadReposEffect)
+                )
             }
             .logger(AndroidLogger.tag<MainModel, MainEvent, MainEffect>("my_app"))
 
@@ -68,7 +64,8 @@ class MainActivity : AppCompatActivity(), IMainView {
         reposList.layoutManager = LinearLayoutManager(applicationContext)
 
         api = (application as SampleApp).service
-        controller = MobiusAndroid.controller(loopFactory,
+        controller = MobiusAndroid.controller(
+            loopFactory,
             MainModel(userName = api.getUserName())
         )
         controller.connect(RxConnectables.fromTransformer(this::connectViews))
@@ -86,7 +83,7 @@ class MainActivity : AppCompatActivity(), IMainView {
 
     fun handleLoadRepos(request: Observable<LoadReposEffect>): Observable<MainEvent> {
         return request.flatMap { effect ->
-            api.getStarredRepos(effect.userName).map { repos ->
+            api.getStarredRepos().map { repos ->
                 ReposLoadedEvent(
                     repos
                 )

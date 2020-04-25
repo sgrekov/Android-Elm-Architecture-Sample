@@ -7,7 +7,7 @@ data class MainModel(val isLoading: Boolean = true,
                      val reposList: List<Repository> = listOf())
 
 sealed class MainEffect
-data class LoadReposEffect(val userName: String) : MainEffect()
+object LoadReposEffect : MainEffect()
 
 sealed class MainEvent
 object MainInit : MainEvent()
